@@ -3,14 +3,14 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 
 use hyper::http::uri::Authority;
 use once_cell::sync::Lazy;
-use proxylib::handlers::{AddrLookupFilter, Filter, Redirect};
+use proxylib::handlers::filter::AddrLookupFilter;
+use proxylib::handlers::redirect::ChangeAuthority;
+use proxylib::handlers::{Filter, Redirect};
 use proxylib::ProxyConfig;
 
-static HANDLER: Lazy<Filter<Redirect, AddrLookupFilter>> = Lazy::new(|| {
+static HANDLER: Lazy<Filter<Redirect<ChangeAuthority>, AddrLookupFilter>> = Lazy::new(|| {
 	Filter::addr_whitelist(
-		Redirect {
-			to: Authority::from_static("example.com"),
-		},
+		Redirect::change_authority(Authority::from_static("example.com")),
 		{
 			let mut whitelist = HashSet::new();
 			for addr in "localhost:8000".to_socket_addrs().unwrap() {
