@@ -1,0 +1,9 @@
+[package]
+name = "proxylib"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+futures = "0.3.16"
+hyper = { version = "0.14.10", features = ["http1", "http2", "tcp", "client", "server"] }
+thiserror = "1.0.22"
