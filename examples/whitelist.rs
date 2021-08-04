@@ -3,13 +3,13 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 
 use hyper::http::uri::Authority;
 use once_cell::sync::Lazy;
-use proxylib::handlers::filter::AddrLookupFilter;
+use proxylib::handlers::filter::SocketAddrLookupFilter;
 use proxylib::handlers::redirect::ChangeAuthority;
 use proxylib::handlers::{Filter, Redirect};
 use proxylib::ProxyConfig;
 
-static HANDLER: Lazy<Filter<Redirect<ChangeAuthority>, AddrLookupFilter>> = Lazy::new(|| {
-	Filter::addr_whitelist(
+static HANDLER: Lazy<Filter<Redirect<ChangeAuthority>, SocketAddrLookupFilter>> = Lazy::new(|| {
+	Filter::<_, SocketAddrLookupFilter>::addr_whitelist(
 		Redirect::change_authority(Authority::from_static("example.com")),
 		{
 			let mut whitelist = HashSet::new();

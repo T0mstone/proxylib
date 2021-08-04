@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::future::{ready, Ready};
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 
 use futures::future::{Either, FutureExt, Map};
 use hyper::client::HttpConnector;
@@ -84,7 +84,7 @@ impl<H: RequestHandler, F: FilterLogic> RequestHandler for Filter<H, F> {
 
 /// A [`FilterLogic`] which just looks the source address up in a list of known addresses
 /// and blocks based on if it is included or not
-pub struct AddrLookupFilter {
+pub struct SocketAddrLookupFilter {
 	/// The list of known addresses
 	pub list: HashSet<SocketAddr>,
 	/// Whether the filter acts as a blacklist (`true`) or a whitelist (`false`)
@@ -97,29 +97,74 @@ pub struct AddrLookupFilter {
 	pub is_blacklist: bool,
 }
 
-impl FilterLogic for AddrLookupFilter {
+impl FilterLogic for SocketAddrLookupFilter {
 	fn filter(&self, from_addr: SocketAddr, _: &Request<Body>) -> bool {
 		self.is_blacklist != self.list.contains(&from_addr)
 	}
 }
 
-impl<H: RequestHandler> Filter<H, AddrLookupFilter> {
-	/// A shortcut to get a [`Filter`]`<_, `[`AddrLookupFilter`]`>`
+impl<H: RequestHandler> Filter<H, SocketAddrLookupFilter> {
+	/// A shortcut to get a [`Filter`]`<_, `[`SocketAddrLookupFilter`]`>`
 	pub fn addr_whitelist(inner: H, whitelist: HashSet<SocketAddr>) -> Self {
 		Self {
 			inner,
-			logic: AddrLookupFilter {
+			logic: SocketAddrLookupFilter {
 				list: whitelist,
 				is_blacklist: false,
 			},
 		}
 	}
 
-	/// A shortcut to get a [`Filter`]`<_, `[`AddrLookupFilter`]`>`
+	/// A shortcut to get a [`Filter`]`<_, `[`SocketAddrLookupFilter`]`>`
 	pub fn addr_blacklist(inner: H, whitelist: HashSet<SocketAddr>) -> Self {
 		Self {
 			inner,
-			logic: AddrLookupFilter {
+			logic: SocketAddrLookupFilter {
+				list: whitelist,
+				is_blacklist: true,
+			},
+		}
+	}
+}
+
+/// A [`FilterLogic`] which just looks the source address up in a list of known addresses
+/// and blocks based on if its IP is included or not
+pub struct IpAddrLookupFilter {
+	/// The list of known addresses
+	pub list: HashSet<IpAddr>,
+	/// Whether the filter acts as a blacklist (`true`) or a whitelist (`false`)
+	///
+	/// If it is `true`, all requests from any address in the list will be blocked
+	/// and all others will be let through.
+	///
+	/// If it is `false`, all requests from any address **not** in the list will be blocked
+	/// and all others will be let through.
+	pub is_blacklist: bool,
+}
+
+impl FilterLogic for IpAddrLookupFilter {
+	fn filter(&self, from_addr: SocketAddr, _: &Request<Body>) -> bool {
+		self.is_blacklist != self.list.contains(&from_addr.ip())
+	}
+}
+
+impl<H: RequestHandler> Filter<H, IpAddrLookupFilter> {
+	/// A shortcut to get a [`Filter`]`<_, `[`IpAddrLookupFilter`]`>`
+	pub fn addr_whitelist(inner: H, whitelist: HashSet<IpAddr>) -> Self {
+		Self {
+			inner,
+			logic: IpAddrLookupFilter {
+				list: whitelist,
+				is_blacklist: false,
+			},
+		}
+	}
+
+	/// A shortcut to get a [`Filter`]`<_, `[`IpAddrLookupFilter`]`>`
+	pub fn addr_blacklist(inner: H, whitelist: HashSet<IpAddr>) -> Self {
+		Self {
+			inner,
+			logic: IpAddrLookupFilter {
 				list: whitelist,
 				is_blacklist: true,
 			},
