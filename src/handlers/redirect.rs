@@ -6,10 +6,13 @@ use hyper::{Body, Client, Request, Uri};
 
 use crate::RequestHandler;
 
+/// The exchangable part of a [`Redirect`]
 pub trait RedirectLogic {
+	/// modify the URI
 	fn change_uri(&self, uri: &mut Uri);
 }
 
+/// Get a [`RedirectLogic`] from a function/closure
 pub fn redirect_fn<F: Fn(&mut Uri)>(f: F) -> impl RedirectLogic {
 	struct RedirectFn<F: Fn(&mut Uri)>(F);
 
@@ -23,7 +26,9 @@ pub fn redirect_fn<F: Fn(&mut Uri)>(f: F) -> impl RedirectLogic {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
+/// A request handler that works by changing the request URI and forwarding that request to the client
 pub struct Redirect<L: RedirectLogic> {
+	/// The [`RedirectLogic`] providing the redirect functionality
 	pub logic: L,
 }
 
@@ -45,6 +50,10 @@ impl<L: RedirectLogic> RequestHandler for Redirect<L> {
 	}
 }
 
+/// A [`RedirectLogic`] which justs sets the authority to a specified value
+///
+/// For example, if configured with `to: Authority::from_static("example.com")`,
+/// it would redirect a request to `<own addr>/a/b/c` to `example.com/a/b/c`.
 pub struct ChangeAuthority {
 	pub to: Authority,
 }
@@ -58,6 +67,7 @@ impl RedirectLogic for ChangeAuthority {
 }
 
 impl Redirect<ChangeAuthority> {
+	/// A convenience method to get a [`Redirect`]`<`[`ChangeAuthority`]`>`
 	pub fn change_authority(to: Authority) -> Self {
 		Self {
 			logic: ChangeAuthority { to },
